@@ -1,0 +1,246 @@
+#!/bin/bash
+
+##################################################################################
+# My fork of Prots "Melonpanel"
+# =============================
+# original found here:
+#	https://gitlab.com/protesilaos/cpdfd/-/blob/master/bin/bin/melonpanel
+#
+# Changes I've added:
+# ---------------------	
+#	- edited the existed modules
+#	- added more modules
+#	- make moduels clickable
+#	- added colors to the modules
+#	- splited up in three files:
+#		- bspwmpanel (the actual binary)
+#		- panel_colors (to define the colors)
+#		- modules (for more overview)
+#	- changed of fonts and colors
+##################################################################################
+
+# Kill any running lemonbar
+pgrep -x lemonbar > /dev/null && pkill -x lemonbar
+
+# import colors and modules
+source /home/flo/panel_colors
+source /home/flo/modules
+
+# batstate=$(cat /sys/class/power_supply/BAT0/status)
+
+# define fonts
+fontmain='Inconsolata:style=regular:size=12'
+
+# declare modules
+_modules() {
+	while true; do
+		echo "B" "$(module_battery)"
+		echo "C" "$(module_cpu)"
+		echo "T" "$(module_temperature)"
+		echo "D" "$(module_datetime)"
+		echo "V" "$(module_volume)"
+		echo "F" "$(module_winname)"
+		echo "M" "$(module_ram)"
+		echo "H" "$(module_disk)"
+		echo "Z" "$(module_cmus)"
+		echo "E" "$(module_mounts)"
+		sleep 1s
+	done
+}
+
+
+# create a new fifo-file
+melonpanel_fifo='/tmp/melonpanel.fifo'
+[ -e "$melonpanel_fifo" ] && rm "$melonpanel_fifo"
+mkfifo "$melonpanel_fifo"
+
+# pipe the output of the modules to the fifo-file
+_modules > "$melonpanel_fifo" &
+bspc subscribe report > "$melonpanel_fifo" &
+
+# make the output for the panel out of the fifo-file
+_melonpanel() {
+	local dual_monitor
+
+	dual_monitor=$(bspc query -M | wc -l)
+
+	while read -r line ; do
+	# setting test variables
+	ramtest=$(free | awk '$1~/Mem/{printf "%1.0f\n", $3/1024}')
+	roottest=$(df -m | awk '$6=="/"{printf "%1.0f\n", $4/1024}')
+	hometest=$(df -m | awk '$6=="/home"{printf "%1.0f\n", $4/1024}')
+	batstate=$(sed "s/Discharging/D/;s/Not charging/N/;s/Charging/C/;s/Unknown/U/;s/Full/F/" /sys/class/power_supply/BAT0/status)
+
+		case $line in
+			E*)
+				externals="${line#?}"
+				;;
+
+			Z*)
+				cmus="${line#?}"
+				;;
+
+			B*)
+				case $batstate in
+					F) UL="$myGreen" ;;
+					D) UL=$myOrange ;;
+					*) UL=$background
+				esac
+				bat="%{U$UL}%{+u}${line#?}%{-u}"
+				;;
+
+			T*)
+				therm="${line#?}"
+				;;
+
+			D*)
+				date="${line#?}"
+				;;
+
+			V*)
+				vol="${line#?}"
+				;;
+
+			F*)
+				title="${line#?}"
+				;;
+
+			M*)
+				[ $ramtest  -gt 7000 ] && UL="$myOrange" || UL=$background
+				memory="%{U$UL}%{+u}%{A:st -e htop:} ${line#?} %{A}%{-u}"
+				;;
+
+			C*)
+				# cpu="${line#?}"
+				UL=$background
+				cpu="%{U$UL}%{+u}%{A:st -e htop:} ${line#?} %{A}%{-u}"
+				;;
+
+			H*)
+				[ $hometest -lt 5 ] || [ $roottest  -lt 2 ] && UL="$myOrange" || UL=$background
+				diskusage="%{U$UL}%{+u}%{A:st -e lf:} ${line#?} %{A}%{-u}"
+				;;
+
+			W*)
+				# bspwm's state
+				wm=
+				IFS=':'
+				set -- ${line#?}
+				while [ $# -gt 0 ] ; do
+					item=$1
+					name=${item#?}
+					case $item in
+						[mM]*)
+							case $item in
+								m*)
+									# monitor
+									FG=$foreground
+									BG=$myBlack
+									on_focused_monitor=
+									;;
+								M*)
+									# focused monitor
+									FG=$foreground
+									BG=$myGrey
+									on_focused_monitor=1
+									;;
+							esac
+							[ $dual_monitor -lt 2 ] && shift && continue
+							wm="${wm}%{F${FG}}%{B${BG}}%{A:bspc monitor -f ${name}:} ${name} %{A}%{B-}%{F-}"
+							;;
+						[fFoOuU]*)
+							case $item in
+								f*)
+									# free desktop
+									FG=$foreground
+									BG=$myBlack
+									UL=$BG
+									;;
+								F*)
+									if [ "$on_focused_monitor" ] ; then
+										# focused free desktop
+										FG=$foreground
+										BG=$myGrey
+										UL=$BG
+									else
+										# active free desktop
+										FG=$foreground
+										BG=$myGrey
+										UL=$BG
+									fi
+									;;
+								o*)
+									# occupied desktop
+									FG=$foreground
+									BG=$myBlack
+									UL=$myGrey
+									;;
+								O*)
+									if [ "$on_focused_monitor" ] ; then
+										# focused occupied desktop
+										FG=$foreground
+										BG=$myGrey
+										UL=$BG
+									else
+										# active occupied desktop
+										FG=$foreground
+										BG=$myGrey
+										UL=$BG
+									fi
+									;;
+								u*)
+									# urgent desktop
+									FG=$myBlack
+									BG=$myOrange
+									UL=$BG
+									;;
+								U*)
+									if [ "$on_focused_monitor" ] ; then
+										# focused urgent desktop
+										FG=$myBlack
+										BG=$myOrange
+										UL=$BG
+									else
+										# active urgent desktop
+										FG=$myBlack
+										BG=$myOrange
+										UL=$BG
+									fi
+									;;
+							esac
+							wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
+							;;
+						[LTG]*)
+							# layout, state and flags
+							wm="${wm}%{F$foreground}%{B$myBlack} ${name} %{B-}%{F-}"
+							;;
+					esac
+					shift
+				done
+
+		esac
+
+		# create output
+		_panel_layout() {
+			echo "%{l}$wm%{c}$title%{r}${cmus}${externals}${diskusage}${memory}${cpu}${bat}${vol}${date}"
+		}
+
+		# make a second panel if a external monitor is plugged
+		if [ $dual_monitor -eq 2 ]; then
+			printf "%s%s\n" "%{Sf}$(_panel_layout)" "%{Sl}$(_panel_layout)"
+		else
+			printf "%s\n" "%{Sf}$(_panel_layout)"
+		fi
+	done
+}
+
+_melonpanel < "$melonpanel_fifo" | lemonbar -a 30 -u 3 -p -g "x22" \
+-F "$foreground" -B "#ff${background:1}" -f "$fontmain" -n "Melonpanel" | sh &
+
+# Hide panel when windows are in full screen mode
+# https://github.com/baskerville/bspwm/issues/484
+until bar_id=$(xdo id -a 'Melonpanel'); do
+	sleep 1s
+done
+
+xdo below -t $(xdo id -n root) $bar_id &

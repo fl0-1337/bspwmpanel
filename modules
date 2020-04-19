@@ -1,0 +1,134 @@
+#!/bin/bash
+
+module_cpu(){
+	read cpu a b c previdle rest < /proc/stat
+	prevtotal=$((a+b+c+previdle))
+
+	sleep 0.5
+
+	read cpu a b c idle rest < /proc/stat
+	total=$((a+b+c+idle))
+
+	cpu=$((100*( (total-prevtotal) - (idle-previdle) ) / (total-prevtotal) ))
+
+	echo "C:${cpu}%"
+
+}
+
+module_ram(){
+	mem=$(free -h | awk '$1~/Mem/{print $3}' |tr -d i)
+	swap=$(free -h | awk '$1~/Swap/{print $3}')
+
+	if [ "${swap}" == "0" ] || [ "${swap}" == "0B" ] 
+	then 	echo "M:${mem}" | tr -d i
+	else 	echo "M:${mem}"\|\|"${swap}" |tr -d i
+	fi
+
+}
+
+module_battery() {
+	battery="/sys/class/power_supply/BAT0"
+	cap=$(cat "${battery}"/capacity)
+
+	echo "B:$cap"
+}
+
+module_temperature() {
+	command -v acpi > /dev/null || return 1
+
+	local therm_label therm_status
+
+	therm_label='T:'
+	therm_status="$(acpi -t | awk -F '[[:space:]]+|,' '{ print $5 }')"
+	therm_status="${therm_status:0:2}"
+
+	# Up to 59 degrees celcius keep text colour same as default.  60-79
+	# turn the colour red on normal background.  Else turn the whole
+	# indicator red.
+	case "$therm_status" in
+		[12345][0-9])
+			echo "$therm_label ${therm_status}°C"
+			;;
+		[67][0-9])
+			echo "$therm_label %{F$color1}${therm_status}°C%{F-}"
+			;;
+		*)
+			echo "%{F$background}%{B$color1} $therm_label ${therm_status}°C %{B-}%{F-}"
+			;;
+	esac
+}
+
+module_volume() {
+	command -v amixer > /dev/null || return 1
+
+	local volume_status volume_level volume_label
+
+	_amixer_get() {
+		amixer get Master | \
+		sed "/^\ *Front R/!d ; s,\(^.*\) \[\(.*%\)\] \[\(.*\)\],\\${1},"
+	}
+
+	volume_status="$(_amixer_get 3)"
+	volume_level="$(_amixer_get 2)"
+	volume_label='V:'
+
+	case "$volume_status" in
+		'off')
+			# echo "$volume_label $volume_level (Muted)"
+			echo "$volume_label$volume_level"
+			;;
+		'on')
+			# echo "$volume_label $volume_level"
+			echo "$volume_label$volume_level"
+			;;
+	esac
+}
+
+module_datetime() {
+	local dt_label dt_status
+
+	dt_label='D:'
+	dt_status="$(date +'%H:%M')"
+
+	echo "$dt_status"
+}
+
+module_winname() {
+	xdotool getactivewindow getwindowname
+}
+
+module_disk(){
+	rootfree=$(df -h | awk '$6=="/"{print $4}')
+	homefree=$(df -h | awk '$6=="/home"{print $4}')
+
+	echo  "R:${rootfree} H:${homefree}"
+	# echo  "[ 🖥${rootfree} ]"
+	# echo  "${homefree}"
+}
+
+module_mounts(){
+	mounted=$(df -h | awk '$1~/_share|mtp/&&$1!~/sda/{printf "%s (%s) ",$6,$4}')
+
+	[ ! -z "${mounted}" ] && echo "[ ⎆${mounted}]"
+}
+
+module_cmus(){
+prepend_zero() {
+        seq -f "%02g" $1 $1
+}
+
+artist=$(echo -n $(cmus-remote -C status | grep "tag artist" | cut -c 12-))
+
+if [[ $artist = *[!\ ]* ]]; then
+        song=$(echo -n $(cmus-remote -C status | grep title | cut -c 11-))
+        position=$(cmus-remote -C status | grep position | cut -c 10-)
+        minutes1=$(prepend_zero $(($position / 60)))
+        seconds1=$(prepend_zero $(($position % 60)))
+        duration=$(cmus-remote -C status | grep duration | cut -c 10-)
+        minutes2=$(prepend_zero $(($duration / 60)))
+        seconds2=$(prepend_zero $(($duration % 60)))
+        echo -n "$artist - $song [$minutes1:$seconds1/$minutes2:$seconds2]"
+else
+        echo
+fi
+}
