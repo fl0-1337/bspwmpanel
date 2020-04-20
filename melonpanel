@@ -70,6 +70,7 @@ _melonpanel() {
 	roottest=$(df -m | awk '$6=="/"{printf "%1.0f\n", $4/1024}')
 	hometest=$(df -m | awk '$6=="/home"{printf "%1.0f\n", $4/1024}')
 	batstate=$(sed "s/Discharging/D/;s/Not charging/N/;s/Charging/C/;s/Unknown/U/;s/Full/F/" /sys/class/power_supply/BAT0/status)
+	batcaptest=$(cat /sys/class/power_supply/BAT0/capacity)
 
 		case $line in
 			E*)
@@ -81,12 +82,16 @@ _melonpanel() {
 				;;
 
 			B*)
+				BG=$background
 				case $batstate in
 					F) UL="$myGreen" ;;
-					D) UL=$myOrange ;;
+					C) BG=$myGrey; UL=$myGrey ;;
+					N) UL=$myRed ;;
+					U) UL=$myBlack ;;
+					D) [ $batcaptest -lt 20 ] && UL=$myOrange || UL=$background;;
 					*) UL=$background
 				esac
-				bat="%{U$UL}%{+u}${line#?}%{-u}"
+				bat="%{B$BG}%{U$UL}%{+u}${line#?} %{B-}%{-u}"
 				;;
 
 			T*)
