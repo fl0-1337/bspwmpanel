@@ -7,7 +7,7 @@
 #	https://gitlab.com/protesilaos/cpdfd/-/blob/master/bin/bin/melonpanel
 #
 # Changes I've added:
-# ---------------------	
+# ---------------------
 #	- edited the existed modules
 #	- added more modules
 #	- make moduels clickable
@@ -23,16 +23,14 @@
 pgrep -x lemonbar > /dev/null && pkill -x lemonbar
 
 # import colors and modules
-source /home/flo/panel_colors
-source /home/flo/modules
-
-# batstate=$(cat /sys/class/power_supply/BAT0/status)
+source $HOME/.local/share/bspwmpanel/panel_colors
+source $HOME/.local/share/bspwmpanel/modules
 
 # define fonts
-fontmain='Inconsolata:style=regular:size=12'
+fontmain='Inconsolata:style=regular:size=10'
 
 # declare modules
-_modules() {
+import_modules() {
 	while true; do
 		echo "B" "$(module_battery)"
 		echo "C" "$(module_cpu)"
@@ -44,6 +42,7 @@ _modules() {
 		echo "H" "$(module_disk)"
 		echo "Z" "$(module_cmus)"
 		echo "E" "$(module_mounts)"
+		echo "A" "$(module_apt)"
 		sleep 1s
 	done
 }
@@ -55,7 +54,7 @@ melonpanel_fifo='/tmp/melonpanel.fifo'
 mkfifo "$melonpanel_fifo"
 
 # pipe the output of the modules to the fifo-file
-_modules > "$melonpanel_fifo" &
+import_modules > "$melonpanel_fifo" &
 bspc subscribe report > "$melonpanel_fifo" &
 
 # make the output for the panel out of the fifo-file
@@ -65,70 +64,20 @@ _melonpanel() {
 	dual_monitor=$(bspc query -M | wc -l)
 
 	while read -r line ; do
-	# setting test variables
-	ramtest=$(free | awk '$1~/Mem/{printf "%1.0f\n", $3/1024}')
-	roottest=$(df -m | awk '$6=="/"{printf "%1.0f\n", $4/1024}')
-	hometest=$(df -m | awk '$6=="/home"{printf "%1.0f\n", $4/1024}')
-	batstate=$(sed "s/Discharging/D/;s/Not charging/N/;s/Charging/C/;s/Unknown/U/;s/Full/F/" /sys/class/power_supply/BAT0/status)
-	batcaptest=$(cat /sys/class/power_supply/BAT0/capacity)
-
 		case $line in
-			E*)
-				externals="${line#?}"
-				;;
-
-			Z*)
-				cmus="${line#?}"
-				;;
-
-			B*)
-				BG=$background
-				case $batstate in
-					F) UL="$myGreen" ;;
-					C) BG=$myGrey; UL=$myGrey ;;
-					N) UL=$myRed ;;
-					U) UL=$myBlack ;;
-					D) [ $batcaptest -lt 20 ] && UL=$myOrange || UL=$background;;
-					*) UL=$background
-				esac
-				bat="%{B$BG}%{U$UL}%{+u}${line#?} %{B-}%{-u}"
-				;;
-
-			T*)
-				therm="${line#?}"
-				;;
-
-			D*)
-				date="${line#?}"
-				;;
-
-			V*)
-				vol="${line#?}"
-				;;
-
-			F*)
-				title="${line#?}"
-				;;
-
-			M*)
-				[ $ramtest  -gt 7000 ] && UL="$myOrange" || UL=$background
-				memory="%{U$UL}%{+u}%{A:st -e htop:} ${line#?} %{A}%{-u}"
-				;;
-
-			C*)
-				# cpu="${line#?}"
-				UL=$background
-				cpu="%{U$UL}%{+u}%{A:st -e htop:} ${line#?} %{A}%{-u}"
-				;;
-
-			H*)
-				[ $hometest -lt 5 ] || [ $roottest  -lt 2 ] && UL="$myOrange" || UL=$background
-				diskusage="%{U$UL}%{+u}%{A:st -e lf:} ${line#?} %{A}%{-u}"
-				;;
-
-			W*)
-				# bspwm's state
-				wm=
+			A*)	updates="${line#?}" ;;
+			B*)	bat="${line#?}" ;;
+			C*)	cpu="${line#?}" ;;
+			D*)	date="${line#?}" ;;
+			E*)	externals="${line#?}" ;;
+			F*)	title="${line#?}" ;;
+			H*)	diskusage="${line#?}" ;;
+			M*)	memory="${line#?}" ;;
+			T*)	therm="${line#?}" ;;
+			V*)	vol="${line#?}" ;;
+			Z*)	cmus="${line#?}" ;;
+			# bspwm's state
+			W*)	wm=
 				IFS=':'
 				set -- ${line#?}
 				while [ $# -gt 0 ] ; do
@@ -189,8 +138,8 @@ _melonpanel() {
 									else
 										# active occupied desktop
 										FG=$foreground
-										BG=$myGrey
-										UL=$BG
+										BG=$background
+										UL=$myGrey
 									fi
 									;;
 								u*)
@@ -222,12 +171,11 @@ _melonpanel() {
 					esac
 					shift
 				done
-
 		esac
 
 		# create output
 		_panel_layout() {
-			echo "%{l}$wm%{c}$title%{r}${cmus}${externals}${diskusage}${memory}${cpu}${bat}${vol}${date}"
+			echo "%{l}${wm}${updates}%{c}$title%{r}${cmus}${externals}${diskusage}${memory}${cpu}${therm}${bat}${vol}${date}"
 		}
 
 		# make a second panel if a external monitor is plugged
@@ -239,8 +187,8 @@ _melonpanel() {
 	done
 }
 
-_melonpanel < "$melonpanel_fifo" | lemonbar -a 30 -u 3 -p -g "x22" \
--F "$foreground" -B "#ff${background:1}" -f "$fontmain" -n "Melonpanel" | sh &
+_melonpanel < "$melonpanel_fifo" | lemonbar -a 60 -u 3 -g "x22" \
+-F "$foreground" -B "#ff${background:1}" -f "$fontmain" -n "Melonpanel" | sh
 
 # Hide panel when windows are in full screen mode
 # https://github.com/baskerville/bspwm/issues/484

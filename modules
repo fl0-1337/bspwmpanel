@@ -11,86 +11,90 @@ module_cpu(){
 
 	cpu=$((100*( (total-prevtotal) - (idle-previdle) ) / (total-prevtotal) ))
 
-	echo "C:${cpu}%"
+	if [ $cpu -gt 80 ]
+	then UL=$myRed
+	elif [ $cpu -gt 65 ]
+	then UL=$myOrange
+	else UL=$myBlack
+	fi
+
+	echo "%{U$UL}%{+u}%{A:st -e htop:} C:${cpu}% %{A}%{-u}"
 
 }
 
 module_ram(){
+	ramtest=$(free -m | awk '$1~/Mem/{printf "%1.0f\n", $3*100/$2}')
 	mem=$(free -h | awk '$1~/Mem/{print $3}' |tr -d i)
 	swap=$(free -h | awk '$1~/Swap/{print $3}')
 
-	if [ "${swap}" == "0" ] || [ "${swap}" == "0B" ] 
-	then 	echo "M:${mem}" | tr -d i
-	else 	echo "M:${mem}"\|\|"${swap}" |tr -d i
+	if [ $ramtest -gt 90 ]
+	then UL=$myRed
+	elif [ $ramtest -gt 75 ]
+	then UL=$myOrange
+	else UL=$myBlack
 	fi
+
+	if [ "${swap}" == "0" ] || [ "${swap}" == "0B" ]
+	then 	ramstatus=$(echo "${mem}" | tr -d i)
+	else 	ramstatus=$(echo "${mem}"\|\|"${swap}" |tr -d i)
+	fi
+
+	echo "%{U$UL}%{+u}%{A:st -e htop:} R:$ramstatus %{A}%{-u}"
 
 }
 
 module_battery() {
 	battery="/sys/class/power_supply/BAT0"
-	cap=$(cat "${battery}"/capacity)
 
-	echo "B:$cap"
+	batstate=$(sed "s/Discharging/D/;s/Not charging/N/;s/Charging/C/;s/Unknown/U/;s/Full/F/" ${battery}/status)
+	capacity=$(cat "${battery}"/capacity)
+
+	BG=$background
+	case $batstate in
+		F) UL="$myGreen" ;;
+		C) BG=$myGrey; UL=$myGrey ;;
+		N) UL=$myRed ;;
+		U) UL=$BG ;;
+		D) [ $capacity -lt 20 ] && UL=$myOrange || UL=$myBlack;;
+		*) UL=$background
+	esac
+
+	echo "%{B$BG}%{U$UL}%{+u} B:${capacity}% %{-u}%{B-}"
 }
 
 module_temperature() {
-	command -v acpi > /dev/null || return 1
-
-	local therm_label therm_status
-
-	therm_label='T:'
 	therm_status="$(acpi -t | awk -F '[[:space:]]+|,' '{ print $5 }')"
 	therm_status="${therm_status:0:2}"
 
-	# Up to 59 degrees celcius keep text colour same as default.  60-79
-	# turn the colour red on normal background.  Else turn the whole
-	# indicator red.
+	BG=$background
 	case "$therm_status" in
-		[12345][0-9])
-			echo "$therm_label ${therm_status}°C"
-			;;
-		[67][0-9])
-			echo "$therm_label %{F$color1}${therm_status}°C%{F-}"
-			;;
-		*)
-			echo "%{F$background}%{B$color1} $therm_label ${therm_status}°C %{B-}%{F-}"
-			;;
+		[12345][0-9]) UL=$myBlack ;;
+		[67][0-9]) UL=$myRed ;;
+		*) UL=$myRed; BG=$myRed ;;
 	esac
+
+	echo "%{B$BG}%{U$UL}%{+u} T:${therm_status}°C %{-u}%{B-}"
 }
 
 module_volume() {
-	command -v amixer > /dev/null || return 1
-
-	local volume_status volume_level volume_label
-
-	_amixer_get() {
+	amixer_get() {
 		amixer get Master | \
 		sed "/^\ *Front R/!d ; s,\(^.*\) \[\(.*%\)\] \[\(.*\)\],\\${1},"
 	}
 
-	volume_status="$(_amixer_get 3)"
-	volume_level="$(_amixer_get 2)"
-	volume_label='V:'
+	volume_status="$(amixer_get 3)"
+	volume_level="$(amixer_get 2)"
 
 	case "$volume_status" in
-		'off')
-			# echo "$volume_label $volume_level (Muted)"
-			echo "$volume_label$volume_level"
-			;;
-		'on')
-			# echo "$volume_label $volume_level"
-			echo "$volume_label$volume_level"
-			;;
+		'on') UL=$myBlack ;;
+		'off') UL=$myOrange ;;
 	esac
+	echo "%{U$UL}%{+u}%{A:smixer mute:} V:$volume_label$volume_level %{A}%{-u} "
 }
 
 module_datetime() {
-	local dt_label dt_status
-
-	dt_label='D:'
 	dt_status="$(date +'%H:%M')"
-
-	echo "$dt_status"
+	echo "%{U$myBlack}%{+u}$dt_status%{-u}"
 }
 
 module_winname() {
@@ -101,13 +105,18 @@ module_disk(){
 	rootfree=$(df -h | awk '$6=="/"{print $4}')
 	homefree=$(df -h | awk '$6=="/home"{print $4}')
 
-	echo  "R:${rootfree} H:${homefree}"
-	# echo  "[ 🖥${rootfree} ]"
-	# echo  "${homefree}"
+	roottest=$(df -m | awk '$6=="/"{printf "%1.0f\n", $4/1024}')
+	hometest=$(df -m | awk '$6=="/home"{printf "%1.0f\n", $4/1024}')
+
+	[ $hometest -lt 5 ] || [ $roottest  -lt 2 ] && UL="$myOrange" || UL=$myBlack
+
+	echo  "%{U$UL}%{+u}%{A:st -e lf:} /:${rootfree} /home:${homefree} %{A}%{-u}"
+	# echo  "%{U$UL}%{+u}%{A:st -e lf:} /:${rootfree} %{A}%{-u}"
+	# echo  "%{U$UL}%{+u}%{A:st -e lf:} /home:${homefree} %{A}%{-u}"
 }
 
 module_mounts(){
-	mounted=$(df -h | awk '$1~/_share|mtp/&&$1!~/sda/{printf "%s (%s) ",$6,$4}')
+	mounted=$(df -h | awk '$1~/\/dev|mtp/&&$1!~/sda/{printf "%s (%s) ",$6,$4}')
 
 	[ ! -z "${mounted}" ] && echo "[ ⎆${mounted}]"
 }
@@ -118,6 +127,13 @@ prepend_zero() {
 }
 
 artist=$(echo -n $(cmus-remote -C status | grep "tag artist" | cut -c 12-))
+status=$(cmus-remote -C status | awk '/status/ {printf $2}')
+
+case $status in
+	"playing") UL=$myBlack ;;
+	"paused") UL=$myOrange ;;
+	*) UL=$background
+esac
 
 if [[ $artist = *[!\ ]* ]]; then
         song=$(echo -n $(cmus-remote -C status | grep title | cut -c 11-))
@@ -127,8 +143,18 @@ if [[ $artist = *[!\ ]* ]]; then
         duration=$(cmus-remote -C status | grep duration | cut -c 10-)
         minutes2=$(prepend_zero $(($duration / 60)))
         seconds2=$(prepend_zero $(($duration % 60)))
-        echo -n "$artist - $song [$minutes1:$seconds1/$minutes2:$seconds2]"
-else
-        echo
+        infostring="$artist - $song [$minutes1:$seconds1/$minutes2:$seconds2]"
 fi
+	echo "%{U$UL}%{+u}%{A:st -e cmus-remote -u:} $infostring %{A}%{-u}"
+}
+
+module_apt(){
+	if [ ! -f /tmp/aptlist ]
+	then	echo "%{B$background}%{U$myRed}%{+u} -- %{B-}%{-u}"
+	else 	aptlist=$(cat /tmp/aptlist)
+		case $aptlist in
+		0) echo "%{B$background}%{U$background}%{+u} %{B-}%{-u}" ;;
+		*) echo "%{B$background}%{U$myOrange}%{+u} $aptlist %{B-}%{-u}" ;;
+	esac
+	fi
 }

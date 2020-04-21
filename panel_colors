@@ -4,6 +4,7 @@ myGreen='#55aa55'
 background="#232323"
 foreground="#aeadaf"
 myOrange="#d2813d"
+myRed="#ff0000"
 
 
 backgroundalt="#312e30"
