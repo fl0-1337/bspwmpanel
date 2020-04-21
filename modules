@@ -11,15 +11,12 @@ module_cpu(){
 
 	cpu=$((100*( (total-prevtotal) - (idle-previdle) ) / (total-prevtotal) ))
 
-	if [ $cpu -gt 80 ]
-	then UL=$myRed
-	elif [ $cpu -gt 65 ]
-	then UL=$myOrange
+	if [ $cpu -gt 80 ]; then UL=$myRed
+	elif [ $cpu -gt 65 ]; then UL=$myOrange
 	else UL=$myBlack
 	fi
 
 	echo "%{U$UL}%{+u}%{A:st -e htop:} C:${cpu}% %{A}%{-u}"
-
 }
 
 module_ram(){
@@ -27,10 +24,8 @@ module_ram(){
 	mem=$(free -h | awk '$1~/Mem/{print $3}' |tr -d i)
 	swap=$(free -h | awk '$1~/Swap/{print $3}')
 
-	if [ $ramtest -gt 90 ]
-	then UL=$myRed
-	elif [ $ramtest -gt 75 ]
-	then UL=$myOrange
+	if [ $ramtest -gt 90 ]; then UL=$myRed
+	elif [ $ramtest -gt 75 ]; then UL=$myOrange
 	else UL=$myBlack
 	fi
 
@@ -40,16 +35,14 @@ module_ram(){
 	fi
 
 	echo "%{U$UL}%{+u}%{A:st -e htop:} R:$ramstatus %{A}%{-u}"
-
 }
 
 module_battery() {
 	battery="/sys/class/power_supply/BAT0"
-
 	batstate=$(sed "s/Discharging/D/;s/Not charging/N/;s/Charging/C/;s/Unknown/U/;s/Full/F/" ${battery}/status)
 	capacity=$(cat "${battery}"/capacity)
-
 	BG=$background
+
 	case $batstate in
 		F) UL="$myGreen" ;;
 		C) BG=$myGrey; UL=$myGrey ;;
@@ -65,8 +58,8 @@ module_battery() {
 module_temperature() {
 	therm_status="$(acpi -t | awk -F '[[:space:]]+|,' '{ print $5 }')"
 	therm_status="${therm_status:0:2}"
-
 	BG=$background
+
 	case "$therm_status" in
 		[12345][0-9]) UL=$myBlack ;;
 		[67][0-9]) UL=$myRed ;;
@@ -94,6 +87,7 @@ module_volume() {
 
 module_datetime() {
 	dt_status="$(date +'%H:%M')"
+
 	echo "%{U$myBlack}%{+u}$dt_status%{-u}"
 }
 

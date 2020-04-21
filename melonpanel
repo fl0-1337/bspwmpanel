@@ -86,88 +86,57 @@ _melonpanel() {
 					case $item in
 						[mM]*)
 							case $item in
-								m*)
-									# monitor
-									FG=$foreground
-									BG=$myBlack
-									on_focused_monitor=
-									;;
-								M*)
-									# focused monitor
-									FG=$foreground
-									BG=$myGrey
-									on_focused_monitor=1
-									;;
+								# monitor
+								m*) FG=$foreground; BG=$myBlack; on_focused_monitor= ;;
+								# focused monitor
+								M*) FG=$foreground; BG=$myGrey; on_focused_monitor=1 ;;
 							esac
+
+							# sum up monitors
 							[ $dual_monitor -lt 2 ] && shift && continue
-							wm="${wm}%{F${FG}}%{B${BG}}%{A:bspc monitor -f ${name}:} ${name} %{A}%{B-}%{F-}"
-							;;
+							wm="${wm}%{F${FG}}%{B${BG}}%{A:bspc monitor -f ${name}:} ${name} %{A}%{B-}%{F-}" ;;
+
 						[fFoOuU]*)
 							case $item in
-								f*)
-									# free desktop
-									FG=$foreground
-									BG=$myBlack
-									UL=$BG
-									;;
-								F*)
-									if [ "$on_focused_monitor" ] ; then
-										# focused free desktop
-										FG=$foreground
-										BG=$myGrey
-										UL=$BG
+
+								# free desktop
+								f*) FG=$foreground; BG=$myBlack; UL=$BG ;;
+								F*) if [ "$on_focused_monitor" ] ; then
+									# focused free desktop
+										FG=$foreground; BG=$myGrey; UL=$BG
 									else
-										# active free desktop
-										FG=$foreground
-										BG=$myGrey
-										UL=$BG
+									# active free desktop
+										FG=$foreground; BG=$myGrey; UL=$BG
 									fi
 									;;
-								o*)
-									# occupied desktop
-									FG=$foreground
-									BG=$myBlack
-									UL=$myGrey
-									;;
-								O*)
-									if [ "$on_focused_monitor" ] ; then
-										# focused occupied desktop
-										FG=$foreground
-										BG=$myGrey
-										UL=$BG
+
+								# occupied desktop
+								o*) FG=$foreground; BG=$myBlack; UL=$myGrey ;;
+								O*) if [ "$on_focused_monitor" ] ; then
+									# focused occupied desktop
+										FG=$foreground; BG=$myGrey; UL=$BG
 									else
-										# active occupied desktop
-										FG=$foreground
-										BG=$background
-										UL=$myGrey
+									# active occupied desktop
+										FG=$foreground; BG=$background; UL=$myGrey
 									fi
 									;;
-								u*)
-									# urgent desktop
-									FG=$myBlack
-									BG=$myOrange
-									UL=$BG
-									;;
-								U*)
-									if [ "$on_focused_monitor" ] ; then
-										# focused urgent desktop
-										FG=$myBlack
-										BG=$myOrange
-										UL=$BG
+
+								# urgent desktop
+								u*) FG=$myBlack; BG=$myOrange; UL=$BG ;;
+								U*) if [ "$on_focused_monitor" ] ; then
+									# focused urgent desktop
+										FG=$myBlack; BG=$myOrange; UL=$BG
 									else
-										# active urgent desktop
-										FG=$myBlack
-										BG=$myOrange
-										UL=$BG
+									# active urgent desktop
+										FG=$myBlack; BG=$myOrange; UL=$BG
 									fi
 									;;
 							esac
+							# sum up workspaces
 							wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
 							;;
-						[LTG]*)
-							# layout, state and flags
-							wm="${wm}%{F$foreground}%{B$myBlack} ${name} %{B-}%{F-}"
-							;;
+						# layout, state and flags
+						[LTG]*) wm="${wm}%{F$foreground}%{B$myBlack} ${name} %{B-}%{F-}" ;;
 					esac
 					shift
 				done
