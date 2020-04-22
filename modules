@@ -1,5 +1,4 @@
 #!/bin/bash
-
 module_cpu(){
 	read cpu a b c previdle rest < /proc/stat
 	prevtotal=$((a+b+c+previdle))
@@ -148,7 +147,27 @@ module_apt(){
 	else 	aptlist=$(cat /tmp/aptlist)
 		case $aptlist in
 		0) echo "%{B$background}%{U$background}%{+u} %{B-}%{-u}" ;;
-		*) echo "%{B$background}%{U$myOrange}%{+u} $aptlist %{B-}%{-u}" ;;
+		*) echo "%{B$background}%{U$myOrange}%{+u} $aptlist {B-}%{-u}" ;;
 	esac
 	fi
+}
+
+module_pomodoro(){
+if [ -f /tmp/pomo ]
+then
+	[ "$(pgrep -x pomodoro)" = "" ] && rm /tmp/pomo
+	mins=$(awk '{print int($2/60)}' /tmp/pomo)
+	secs=$(awk '{print int($2%60)}' /tmp/pomo)
+	[ $mins -le 9 ] && mins="0${mins}"
+	[ $secs -le 9 ] && secs="0${secs}"
+
+  	case $(awk '{print $1}' /tmp/pomo) in
+		"work") UL=$myGreen ;;
+		"break") UL=$myOrange ;;
+		"bigbreak") UL=$myRed ;;
+		*) UL=$background
+	esac
+
+	echo "%{U$UL}%{+u} $mins:$secs %{-u}"
+fi
 }

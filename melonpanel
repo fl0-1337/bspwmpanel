@@ -43,7 +43,8 @@ import_modules() {
 		echo "Z" "$(module_cmus)"
 		echo "E" "$(module_mounts)"
 		echo "A" "$(module_apt)"
-		sleep 1s
+		echo "P" "$(module_pomodoro)"
+		sleep 0.5s
 	done
 }
 
@@ -76,6 +77,7 @@ _melonpanel() {
 			T*)	therm="${line#?}" ;;
 			V*)	vol="${line#?}" ;;
 			Z*)	cmus="${line#?}" ;;
+			P*)	pom="${line#?}" ;;
 			# bspwm's state
 			W*)	wm=
 				IFS=':'
@@ -135,8 +137,12 @@ _melonpanel() {
 							# sum up workspaces
 							wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
 							;;
-						# layout, state and flags
-						[LTG]*) wm="${wm}%{F$foreground}%{B$myBlack} ${name} %{B-}%{F-}" ;;
+						# state and flags
+						[TG]*) UL=$myOrange; FG=$foreground; BG=$myBlack
+							if [ "$name" == "" ]; then BG=$background; FG=$BG; UL=$BG;fi
+
+							# sum up stats and flags
+						wm="${wm}%{F$FG}%{B$BG}%{U$UL}%{+u} ${name} %{-u}%{B-}%{F-}" ;;
 					esac
 					shift
 				done
@@ -144,7 +150,7 @@ _melonpanel() {
 
 		# create output
 		_panel_layout() {
-			echo "%{l}${wm}${updates}%{c}$title%{r}${cmus}${externals}${diskusage}${memory}${cpu}${therm}${bat}${vol}${date}"
+			echo "%{l}${wm}${pom}${updates}%{c}$title%{r}${cmus}${externals}${diskusage}${memory}${cpu}${therm}${bat}${vol}${date}"
 		}
 
 		# make a second panel if a external monitor is plugged
