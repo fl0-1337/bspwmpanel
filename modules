@@ -110,8 +110,7 @@ module_disk(){
 
 module_mounts(){
 	mounted=$(df -h | awk '$1~/\/dev|mtp/&&$1!~/sda/{printf "%s (%s) ",$6,$4}')
-
-	[ ! -z "${mounted}" ] && echo "[ ⎆${mounted}]"
+	[ ! -z "${mounted}" ] && echo "%{U$myGreen}%{+u} ${mounted} %{-u}"
 }
 
 module_cmus(){
