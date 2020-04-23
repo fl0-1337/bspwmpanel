@@ -16,7 +16,7 @@
 #		- bspwmpanel (the actual binary)
 #		- panel_colors (to define the colors)
 #		- modules (for more overview)
-#	- changed of fonts and colors
+#	- changed of fonts (Inconsolata) and colors (nord)
 ##################################################################################
 
 # Kill any running lemonbar
@@ -91,7 +91,7 @@ _melonpanel() {
 								# monitor
 								m*) FG=$foreground; BG=$myBlack; on_focused_monitor= ;;
 								# focused monitor
-								M*) FG=$foreground; BG=$myGrey; on_focused_monitor=1 ;;
+								M*) FG=$foreground; BG=$myActive; on_focused_monitor=1 ;;
 							esac
 
 							# sum up monitors
@@ -105,21 +105,21 @@ _melonpanel() {
 								f*) FG=$foreground; BG=$myBlack; UL=$BG ;;
 								F*) if [ "$on_focused_monitor" ] ; then
 									# focused free desktop
-										FG=$foreground; BG=$myGrey; UL=$BG
+										FG=$foreground; BG=$myActive; UL=$BG
 									else
 									# active free desktop
-										FG=$foreground; BG=$myGrey; UL=$BG
+										FG=$foreground; BG=$myActive; UL=$BG
 									fi
 									;;
 
 								# occupied desktop
-								o*) FG=$foreground; BG=$myBlack; UL=$myGrey ;;
+								o*) FG=$foreground; BG=$myBlack; UL=$myActive ;;
 								O*) if [ "$on_focused_monitor" ] ; then
 									# focused occupied desktop
-										FG=$foreground; BG=$myGrey; UL=$BG
+										FG=$foreground; BG=$myActive; UL=$BG
 									else
 									# active occupied desktop
-										FG=$foreground; BG=$background; UL=$myGrey
+										FG=$foreground; BG=$background; UL=$myActive
 									fi
 									;;
 
@@ -138,7 +138,7 @@ _melonpanel() {
 							wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
 							;;
 						# state and flags
-						[TG]*) UL=$myOrange; FG=$foreground; BG=$myBlack
+						[TG]*) UL=$myNormal; FG=$foreground; BG=$myBlack
 							if [ "$name" == "" ]; then BG=$background; FG=$BG; UL=$BG;fi
 
 							# sum up stats and flags

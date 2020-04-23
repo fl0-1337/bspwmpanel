@@ -1,7 +1,29 @@
-myBlack="#111111"
-myGrey='#282a36'
-myGreen='#55aa55'
-background="#232323"
-foreground="#aeadaf"
-myOrange="#d2813d"
-myRed="#ff0000"
+##############
+# NORD THEME #
+##############
+
+	# general colors
+background="#3b4252"	# nord1
+foreground="#eceff4"	# nord6
+myActive="#5e81ac"	# nord10
+myBlack="#2e3440"	# nord0
+
+	# status colors
+myNormal="#4c566a"	# nord3
+myGreen="#a3be8c"	# nord14
+myOrange="#d08770"	# nord12
+myRed="#bf616a"		# nord11
+
+
+
+
+##############
+# OLD COLORS #
+##############
+# myOrange="#d2813d"
+# myGreen='#55aa55'
+# myRed="#ff0000"
+# background="#232323"
+# foreground="#aeadaf"
+# myGrey='#282a36'
+# myBlack="#111111"

@@ -12,7 +12,7 @@ module_cpu(){
 
 	if [ $cpu -gt 80 ]; then UL=$myRed
 	elif [ $cpu -gt 65 ]; then UL=$myOrange
-	else UL=$myBlack
+	else UL=$myNormal
 	fi
 
 	echo "%{U$UL}%{+u}%{A:st -e htop:} C:${cpu}% %{A}%{-u}"
@@ -25,7 +25,7 @@ module_ram(){
 
 	if [ $ramtest -gt 90 ]; then UL=$myRed
 	elif [ $ramtest -gt 75 ]; then UL=$myOrange
-	else UL=$myBlack
+	else UL=$myNormal
 	fi
 
 	if [ "${swap}" == "0" ] || [ "${swap}" == "0B" ]
@@ -47,7 +47,7 @@ module_battery() {
 		C) BG=$myGrey; UL=$myGrey ;;
 		N) UL=$myRed ;;
 		U) UL=$BG ;;
-		D) [ $capacity -lt 20 ] && UL=$myOrange || UL=$myBlack;;
+		D) [ $capacity -lt 20 ] && UL=$myOrange || UL=$myNormal;;
 		*) UL=$background
 	esac
 
@@ -60,7 +60,7 @@ module_temperature() {
 	BG=$background
 
 	case "$therm_status" in
-		[12345][0-9]) UL=$myBlack ;;
+		[12345][0-9]) UL=$myNormal ;;
 		[67][0-9]) UL=$myRed ;;
 		*) UL=$myRed; BG=$myRed ;;
 	esac
@@ -78,7 +78,7 @@ module_volume() {
 	volume_level="$(amixer_get 2)"
 
 	case "$volume_status" in
-		'on') UL=$myBlack ;;
+		'on') UL=$myNormal ;;
 		'off') UL=$myOrange ;;
 	esac
 	echo "%{U$UL}%{+u}%{A:smixer mute:} V:$volume_label$volume_level %{A}%{-u} "
@@ -87,7 +87,7 @@ module_volume() {
 module_datetime() {
 	dt_status="$(date +'%H:%M')"
 
-	echo "%{U$myBlack}%{+u}$dt_status%{-u}"
+	echo "%{U$myNormal}%{+u}$dt_status%{-u}"
 }
 
 module_winname() {
@@ -101,7 +101,7 @@ module_disk(){
 	roottest=$(df -m | awk '$6=="/"{printf "%1.0f\n", $4/1024}')
 	hometest=$(df -m | awk '$6=="/home"{printf "%1.0f\n", $4/1024}')
 
-	[ $hometest -lt 5 ] || [ $roottest  -lt 2 ] && UL="$myOrange" || UL=$myBlack
+	[ $hometest -lt 5 ] || [ $roottest  -lt 2 ] && UL="$myOrange" || UL=$myNormal
 
 	echo  "%{U$UL}%{+u}%{A:st -e lf:} /:${rootfree} /home:${homefree} %{A}%{-u}"
 	# echo  "%{U$UL}%{+u}%{A:st -e lf:} /:${rootfree} %{A}%{-u}"
@@ -122,7 +122,7 @@ artist=$(echo -n $(cmus-remote -C status | grep "tag artist" | cut -c 12-))
 status=$(cmus-remote -C status | awk '/status/ {printf $2}')
 
 case $status in
-	"playing") UL=$myBlack ;;
+	"playing") UL=$myNormal ;;
 	"paused") UL=$myOrange ;;
 	*) UL=$background
 esac
@@ -146,7 +146,7 @@ module_apt(){
 	else 	aptlist=$(cat /tmp/aptlist)
 		case $aptlist in
 		0) echo "%{B$background}%{U$background}%{+u} %{B-}%{-u}" ;;
-		*) echo "%{B$background}%{U$myOrange}%{+u} $aptlist {B-}%{-u}" ;;
+		*) echo "%{B$background}%{U$myOrange}%{+u} $aptlist %{B-}%{-u}" ;;
 	esac
 	fi
 }
