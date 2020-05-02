@@ -27,7 +27,7 @@ source $HOME/.local/share/bspwmpanel/panel_colors
 source $HOME/.local/share/bspwmpanel/modules
 
 # define fonts
-fontmain='Inconsolata:style=regular:size=10'
+fontmain='Noto Mono:style=regular:size=9'
 
 # declare modules
 import_modules() {
@@ -138,11 +138,15 @@ _melonpanel() {
 							wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
 							;;
 						# state and flags
-						[TG]*) UL=$myNormal; FG=$foreground; BG=$myBlack
+						[TG]*) BG=$myBlack; FG=$foreground; UL=$BG
 							if [ "$name" == "" ]; then BG=$background; FG=$BG; UL=$BG;fi
 
 							# sum up stats and flags
-						wm="${wm}%{F$FG}%{B$BG}%{U$UL}%{+u} ${name} %{-u}%{B-}%{F-}" ;;
+						wm="${wm}%{F$FG}%{B$BG}|%{U$UL}%{+u} ${name} %{-u}%{B-}%{F-}" ;;
+
+						# layout
+						L*) FG=$foreground; BG=$myBlack; UL=$BG
+						layout="%{F$FG}%{B$BG}%{U$UL}%{+u}%{A:bspc desktop -l next:} ${name} %{A}%{-u}|%{B-}%{F-}" ;;
 					esac
 					shift
 				done
@@ -150,7 +154,7 @@ _melonpanel() {
 
 		# create output
 		_panel_layout() {
-			echo "%{l}${wm}${pom}${updates}%{c}$title%{r}${cmus}${externals}${diskusage}${memory}${cpu}${therm}${bat}${vol}${date}"
+			echo "%{l}${layout}${wm}${pom}${updates}${title}%{r}${cmus}${externals}${diskusage}${memory}${cpu}${therm}${bat}${vol}${date}"
 		}
 
 		# make a second panel if a external monitor is plugged
@@ -163,7 +167,7 @@ _melonpanel() {
 }
 
 _melonpanel < "$melonpanel_fifo" | lemonbar -a 60 -u 3 -g "x22" \
--F "$foreground" -B "#ff${background:1}" -f "$fontmain" -n "Melonpanel" | sh
+-F "$foreground" -B "${background}" -f "$fontmain" -n "Melonpanel" | sh
 
 # Hide panel when windows are in full screen mode
 # https://github.com/baskerville/bspwm/issues/484

@@ -44,7 +44,7 @@ module_battery() {
 
 	case $batstate in
 		F) UL="$myGreen" ;;
-		C) BG=$myGrey; UL=$myGrey ;;
+		C) UL=$foreground ;;
 		N) UL=$myRed ;;
 		U) UL=$BG ;;
 		D) [ $capacity -lt 20 ] && UL=$myOrange || UL=$myNormal;;
@@ -91,7 +91,9 @@ module_datetime() {
 }
 
 module_winname() {
-	xdotool getactivewindow getwindowname
+	wintitle=$(xdotool getactivewindow getwindowname | cut -c1-50)
+	[ "${wintitle}" = "" ] && UL=$background && echo "" || UL=$foreground
+	echo "%{U$UL}%{+u} [ ${wintitle} ] %{-u}"
 }
 
 module_disk(){
